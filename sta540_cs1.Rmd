@@ -9,7 +9,7 @@ output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo=FALSE)
 library(knitr)
 library(magrittr)
 library(kableExtra)
@@ -19,19 +19,19 @@ library(tidyr)
 options(warn = -1)
 ```
 
-# Filtering out extra rows
 ```{r}
-df <- read.csv("CTN_FINAL.csv")
-df[1:6, 1:6]
-dim(df)
-```
+# Filtering out extra rows
 
-The `PO_FLAG` variable marks which rows are ultimately used for analysis. However there is 1 additional row unaccounted for by this variable, which I removed by process of elimination based on matching numbers with the original Table 1. 
+# The `PO_FLAG` variable marks which rows are ultimately used for analysis. However there is 1 additional row unaccounted for by this variable, which I removed by process of elimination based on matching numbers with the original Table 1. 
+df <- read.csv("CTN_FINAL.csv")
+# df[1:6, 1:6]
+# dim(df)
+```
 
 ```{r}
 # df2 <- subset(df, (Q6_1 != 2) & (LAST_HIV_TEST > 90) & (Q6_2 != 2))
 df2 <- df[df$PO_FLAG == "Include", ]
-dim(df2)
+# dim(df2)
 ```
 
 ```{r}
@@ -42,7 +42,7 @@ dim(df2)
 
 # df2[109, ]$Q3_1
 df2 <- df2[-109, ]
-dim(df2)
+# dim(df2)
 
 # this person's response is bugged, they said they have other reasons for not taking HIV test but have NA for LAST_HIV_TEST but also have 1 (Yes) for "Did you take HIV test". However, they are supposed to be included in the final analysis.
 # They should be counted as having taken the HIV test and excluded from the "Other" count of reasons not to take the HIV test. 
@@ -242,6 +242,10 @@ table1_df <- rbind(
 
 table1_df %>%
   kable(caption = title) %>%
+  kable_styling(
+    latex_options = c("hold_position"),
+    font_size = 9
+  ) %>%
   add_indent(positions = c(3)) %>%  
   add_indent(positions = 5:9) %>%  
   add_indent(positions = 11:12) %>%   
@@ -252,7 +256,7 @@ table1_df %>%
 
 # Primary analysis
 
-```{r}
+```{r, include=FALSE}
 library(emmeans)
 ```
 
@@ -307,12 +311,12 @@ primary_fit <- glm(
   data = df_model
 )
 
-summary(primary_fit)
+# summary(primary_fit)
 ```
 
 ## Estimating cell-specific rates
 
-```{r}
+```{r, include=FALSE}
 rate_ests_emmeans <- emmeans(
   primary_fit,
   ~ SITE_TYPE * WAVE_ADJ,
@@ -339,7 +343,10 @@ rate_ests <- rate_ests %>%
     WAVE_ADJ = factor(WAVE_ADJ, levels = c(1, 2))
   ) %>%
   arrange(SITE_TYPE, WAVE_ADJ)
+```
 
+
+```{r}
 kable(rate_ests[, c(9,1,2,3,4, 5)]  %>%
   mutate(
     rate = round(rate, 2),
@@ -350,7 +357,7 @@ kable(rate_ests[, c(9,1,2,3,4, 5)]  %>%
 
 ## Contrasts
 
-```{r}
+```{r, include=FALSE}
 df_model2 <- rbind(df_model_raw, data.frame(
     "SITE_TYPE" = "Info Sites", "WAVE_ADJ" = 2, 
     "outcome" = 0.5, "TIME_WAVE_ACTIVE" = 38
@@ -386,7 +393,10 @@ contrasts_pvals$platform_names <- c(
   "Grindr vs Facebook",
   "Google vs Facebook"
 )
+```
 
+
+```{r}
 kable(contrasts_pvals[, c(1, 10, 9)] %>%
   mutate(
     p.value = round(p.value, 4),
@@ -395,6 +405,7 @@ kable(contrasts_pvals[, c(1, 10, 9)] %>%
       col.names = c("Wave", "Contrast", "P-value")) 
 ```
 
+\newpage
 # Secondary analysis
 
 ## a) Tobacco, alcohol, prescription medications, and other substance use
@@ -583,13 +594,26 @@ for (sub in names(substances)) { # repeat per substance
   }
 }
 
-kable(results_df,
-      col.names = 
-        c("Substance", "Category", "Ordered test kit", 
-          "Percent",	"Did not order test kit", "Percent",
-          "P-value"))
+kable(
+  results_df,
+  col.names = c(
+    "Substance", "Category", "Ordered test kit",
+    "Percent", "Did not order test kit", "Percent",
+    "P-value"
+  ),
+  booktabs = TRUE
+) %>%
+  kable_styling(
+    latex_options = c("hold_position", "scale_down"),
+    font_size = 9,
+    full_width = FALSE
+  ) %>%
+  column_spec(1, width = "2.5cm") %>%
+  column_spec(2, width = "3cm") %>%
+  row_spec(0, bold = TRUE) 
 ```
 
+\newpage
 
 ## b) Stage of Health Behavior Change
 ```{r}
@@ -676,9 +700,13 @@ kable(
     "Did not order test kit", "Percent",
     "P-value"
   )
-)
+)  %>% kable_styling(
+    latex_options = c("hold_position"),
+    font_size = 9
+  ) %>% column_spec(2, width = "3.5cm") 
 ```
 
+\newpage
 
 ## c) Attitudes toward human immunodeficiency virus (HIV) testing
 ```{r}
@@ -786,14 +814,15 @@ kable(results_attitudes,
         "Ordered test kit", "Percent",
         "Did not order test kit", "Percent",
         "P-value"
-      ))
+      ))  %>% kable_styling(
+    latex_options = c("hold_position"),
+    font_size = 9) %>% column_spec(1, width = "4cm")
 ```
 
+\newpage
 
 ## d) Attitudes toward human immunodeficiency virus (HIV) treatment (continuous scale from 1 [strongly disagree] to 7 [strongly agree])
 ```{r}
-
-
 hiv_trt_atts1_pval <- wilcox.test(
   Q94_1 ~ ORA_REDEEMED,
   data = df2,
@@ -923,9 +952,13 @@ kable(
     "Did not order test kit: Mean (SD)",
     "P-value"
   )
-)
+) %>% kable_styling(
+    latex_options = c("hold_position"),
+    font_size = 9) %>% column_spec(1, width = "3.5cm") 
 ```
 
+
+\newpage
 
 ## e) Human immunodeficiency virus (HIV)-related stigma among study participants
 ```{r}
@@ -1021,10 +1054,12 @@ kable(results_stigma,
         "Ordered test kit", "Percent",
         "Did not order test kit", "Percent",
         "P-value"
-      ))
+      )) %>% kable_styling(
+    latex_options = c("hold_position"),
+    font_size = 9) %>% column_spec(1, width = "3cm") 
 ```
 
-
+\newpage
 ## f) Medical mistrust
 
 ```{r}
@@ -1162,7 +1197,9 @@ kable(results_mistrust,
         "Ordered test kit", "Percent",
         "Did not order test kit", "Percent",
         "P-value"
-      ))
+      )) %>% kable_styling(
+    latex_options = c("hold_position"),
+    font_size = 9) %>% column_spec(1, width = "3.5cm") 
 ```
 
 ## Figure S1
