@@ -1,0 +1,1449 @@
+---
+title: "STA 540L Case Study 1: Reproduction"
+author: "Tracy Sun"
+header-includes:
+  \usepackage{fvextra}
+  \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,commandchars=\\\{\}}
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(magrittr)
+library(kableExtra)
+library(dplyr)
+library(stats)
+library(tidyr)
+options(warn = -1)
+```
+
+# Filtering out extra rows
+```{r}
+df <- read.csv("CTN_FINAL.csv")
+df[1:6, 1:6]
+dim(df)
+```
+
+The `PO_FLAG` variable marks which rows are ultimately used for analysis. However there is 1 additional row unaccounted for by this variable, which I removed by process of elimination based on matching numbers with the original Table 1. 
+
+```{r}
+# df2 <- subset(df, (Q6_1 != 2) & (LAST_HIV_TEST > 90) & (Q6_2 != 2))
+df2 <- df[df$PO_FLAG == "Include", ]
+dim(df2)
+```
+
+```{r}
+# Decided to manually remove this row based on matching it to the Table 1's stats (not sure why it was thrown out though but whatever):
+
+# df2[df2$Q5_1 == 1 & df2$Q6_2 == 3 & df2$Q11_3 == 1 & df2$Q11_4 == 1 & df2$Q11_5 == 2 & df2$Q11_7 == 3, ]
+# which(df2$Q5_1 == 1 & df2$Q6_2 == 3 & df2$Q11_3 == 1 & df2$Q11_4 == 1 & df2$Q11_5 == 2 & df2$Q11_7 == 3)
+
+# df2[109, ]$Q3_1
+df2 <- df2[-109, ]
+dim(df2)
+
+# this person's response is bugged, they said they have other reasons for not taking HIV test but have NA for LAST_HIV_TEST but also have 1 (Yes) for "Did you take HIV test". However, they are supposed to be included in the final analysis.
+# They should be counted as having taken the HIV test and excluded from the "Other" count of reasons not to take the HIV test. 
+# which(df2$Q11_7 == 8 & is.na(df2$LAST_HIV_TEST))
+# df2[132, ]$Q11_5
+# df2[132, ]$LAST_HIV_TEST_MONTHS
+```
+
+# Table 1
+```{r}
+title <- paste0("Summary of National Institute on Drug Abuse Clinical Trials Network Social Media Pre-exposure Prophylaxis Study, 2020, population sociodemographic and behavioral characteristics (N=", dim(df2)[1], ").")
+
+df_race <- factor(df2$Q5_3, 
+   levels = c("25", "26", 
+              "24", "27", "23", "28",
+              "24,23", "26,24", "25,24,27,23", "24,28", "25,24,23", "25,24"
+              ), 
+   labels = c("American Indian or Alaska Native", "Asian",
+              "Black or African American", 
+              "Native Hawaiian or Pacific Islander",
+              "White",
+              "Other",
+              "Multiracial", "Multiracial", "Multiracial", 
+              "Multiracial", "Multiracial", "Multiracial"))
+
+age_tbl <- data.frame(
+  Characteristic = c(
+    "Age in Years, median (IQR)",
+    "Ethnicity, n (%)",
+    "Hispanic/Latinx"
+  ),
+  Value = c(
+    paste0(
+      quantile(df2$Q3_1, 0.5), " (",
+      quantile(df2$Q3_1, 0.25), "-",
+      quantile(df2$Q3_1, 0.75), ")"
+    ),
+    "",
+    paste0(
+      sum(df2$Q5_1 == 1), " (",
+      round(100 * sum(df2$Q5_1 == 1) / length(df2$Q5_1), 1), ")"
+    )
+  )
+)
+
+## NOTE: The race section excluded 4 people out of the 254 participants (they had NA for race), and percentages are out of 250
+race_tbl <- data.frame(
+  Characteristic = c(
+    "Race, n (%)",
+    "American Indian or Alaskan Native",
+    "Black or African American",
+    "White",
+    "Other",
+    "Multiracial"
+  ),
+  Value = c(
+    "",
+    paste0(sum(df_race == "American Indian or Alaska Native", na.rm=TRUE), " (",
+           round(100 * sum(df_race == "American Indian or Alaska Native", na.rm=TRUE) / sum(!is.na(df_race)), 1), ")"),
+    paste0(sum(df_race == "Black or African American", na.rm=TRUE), " (",
+           round(100 * sum(df_race == "Black or African American", na.rm=TRUE) / sum(!is.na(df_race)), 1), ")"),
+    paste0(sum(df_race == "White", na.rm=TRUE), " (",
+           round(100 * sum(df_race == "White", na.rm=TRUE) / sum(!is.na(df_race)), 1), ")"),
+    paste0(sum(df_race == "Other", na.rm=TRUE), " (",
+           round(100 * sum(df_race == "Other", na.rm=TRUE) / sum(!is.na(df_race)), 1), ")"),
+    paste0(sum(df_race == "Multiracial", na.rm=TRUE), " (",
+           round(100 * sum(df_race == "Multiracial", na.rm=TRUE) / sum(!is.na(df_race)), 1), ")")
+  )
+)
+
+prep_table <- data.frame(
+  Characteristic = c(
+    "History of PrEP uptake, n (%)",
+    "Never taken PrEP",
+    "Have taken PrEP, but not within the past 6 months"
+  ),
+  Value = c(
+    "",
+    paste0(sum(df2$Q6_2 == 3), " (",
+           round(100 * sum(df2$Q6_2 == 3) / dim(df2)[1], 1), ")"),
+    paste0(sum(df2$Q6_2 == 1), " (",
+           round(100 * sum(df2$Q6_2 == 1) / dim(df2)[1], 1), ")")
+  )
+)
+
+mpart_table <- data.frame(
+  Characteristic = "Number of male sex partners in the past 90 days, median (IQR)",
+  Value = paste0(
+    quantile(df2$Q11_2, 0.5), " (",
+    quantile(df2$Q11_2, 0.25), "-",
+    quantile(df2$Q11_2, 0.75), ")"
+  )
+)
+condom_use <- factor(df2$Q11_3, levels = c(1, 2, 3, 4, 5), labels = c("Never", "Sometimes", "About half the time", "Most of the time", "Always"))
+
+condom_table <- data.frame(
+  Characteristic = c(
+    "Condom use, n (%)",
+    "Never",
+    "Sometimes",
+    "About half the time",
+    "Most of the time",
+    "Always",
+    "Condomless receptive anal sex in the past 90 days, n (%)"
+  ),
+  Value = c(
+    "",
+    paste0(sum(condom_use == "Never"), " (",
+           round(100 * sum(condom_use == "Never") / length(condom_use), 1), ")"),
+    paste0(sum(condom_use == "Sometimes"), " (",
+           round(100 * sum(condom_use == "Sometimes") / length(condom_use), 1), ")"),
+    paste0(sum(condom_use == "About half the time"), " (",
+           round(100 * sum(condom_use == "About half the time") / length(condom_use), 1), ")"),
+    paste0(sum(condom_use == "Most of the time"), " (",
+           round(100 * sum(condom_use == "Most of the time") / length(condom_use), 1), ")"),
+    paste0(sum(condom_use == "Always"), " (",
+           round(100 * sum(condom_use == "Always") / length(condom_use), 1), ")"),
+    paste0(sum(df2$Q11_4 == 1), " (",
+           round(100 * sum(df2$Q11_4 == 1) / dim(df2)[1], 1), ")")
+  )
+)
+
+# df2$LAST_HIV_TEST_MONTHS[df2$LAST_HIV_TEST_MONTHS == 9999] <- NA # 9999 should mean they didn't take the HIV test so set as NA to ignore
+tested_for_HIV <- df2[df2$Q11_5 == 1, ] # 191 rows
+not_tested <- df2[df2$Q11_5 == 2, ] # 63 rows
+
+HIV_tested_table <- data.frame(
+  Characteristic = c(
+    "Ever tested for HIV during lifetime, n (%)",
+    "If tested for HIV, median (IQR)",
+    "Months since last HIV test",
+    "If not tested for HIV, n (%)"
+  ),
+  Value = c(
+    paste0(sum(df2$Q11_5 == 1), " (",
+           round(100 * sum(df2$Q11_5 == 1) / dim(df2)[1], 1), ")"),
+    "",
+    paste0(
+      round(quantile(tested_for_HIV$LAST_HIV_TEST_MONTHS, 0.5, na.rm = TRUE), 1),
+      " (",
+      round(quantile(tested_for_HIV$LAST_HIV_TEST_MONTHS, 0.25, na.rm = TRUE), 1),
+      "-",
+      round(quantile(tested_for_HIV$LAST_HIV_TEST_MONTHS, 0.75, na.rm = TRUE), 1),
+      ")"
+    ),
+    paste0(sum(df2$Q11_5 == 2), " (",
+           round(100 * (sum(df2$Q11_5 == 2)) / dim(df2)[1], 1), ")")
+  )
+)
+
+reason_factor <- factor(not_tested$Q11_7, levels = c(1, 2, 3, 4, 5, 6, 7, 8), labels = c("Unlikely to be exposed to HIV", "Afraid of testing HIV-positive", "Did not want to think about HIV/HIV-positive", "Worried about names being reported if positive", "Dislike for needles", "Unable to trust that the results will be confidential", "Unaware of where to get tested", "Other reasons"))
+
+reason_table <- data.frame(
+  Characteristic = c(
+    "Main reasons cited by the 63 participants for not getting tested, n (%)",
+    "Unlikely to be exposed to HIV",
+    "Afraid of testing HIV-positive",
+    "Did not want to think about HIV/HIV-positive",
+    "Worried about names being reported if positive",
+    "Dislike for needles",
+    "Unable to trust that the results will be confidential",
+    "Unaware of where to get tested",
+    "Other reasons"
+  ),
+  Value = c(
+    "",
+    paste0(sum(reason_factor == "Unlikely to be exposed to HIV"), " (",
+           round(100 * sum(reason_factor == "Unlikely to be exposed to HIV") / sum(df2$Q11_5 == 2), 1), ")"),
+    paste0(sum(reason_factor == "Afraid of testing HIV-positive"), " (",
+           round(100 * sum(reason_factor == "Afraid of testing HIV-positive") / sum(df2$Q11_5 == 2), 1), ")"),
+    paste0(sum(reason_factor == "Did not want to think about HIV/HIV-positive"), " (",
+           round(100 * sum(reason_factor == "Did not want to think about HIV/HIV-positive") / sum(df2$Q11_5 == 2), 1), ")"),
+    paste0(sum(reason_factor == "Worried about names being reported if positive"), " (",
+           round(100 * sum(reason_factor == "Worried about names being reported if positive") / sum(df2$Q11_5 == 2), 1), ")"),
+    paste0(sum(reason_factor == "Dislike for needles"), " (",
+           round(100 * sum(reason_factor == "Dislike for needles") / sum(df2$Q11_5 == 2), 1), ")"),
+    paste0(sum(reason_factor == "Unable to trust that the results will be confidential"), " (",
+           round(100 * sum(reason_factor == "Unable to trust that the results will be confidential") / sum(df2$Q11_5 == 2), 1), ")"),
+    paste0(sum(reason_factor == "Unaware of where to get tested"), " (",
+           round(100 * sum(reason_factor == "Unaware of where to get tested") / sum(df2$Q11_5 == 2), 1), ")"),
+    paste0(sum(reason_factor == "Other reasons"), " (",
+           round(100 * sum(reason_factor == "Other reasons") / sum(df2$Q11_5 == 2), 1), ")")
+  )
+)
+```
+
+```{r}
+table1_df <- rbind(
+  age_tbl,
+  race_tbl,
+  prep_table,
+  mpart_table,
+  condom_table,
+  HIV_tested_table,
+  reason_table
+)
+
+table1_df %>%
+  kable(caption = title) %>%
+  add_indent(positions = c(3)) %>%  
+  add_indent(positions = 5:9) %>%  
+  add_indent(positions = 11:12) %>%   
+  add_indent(positions = 15:19) %>%    
+  add_indent(positions = 23)  %>%
+  add_indent(positions = 26:33)  
+```
+
+# Primary analysis
+
+```{r}
+library(emmeans)
+```
+
+```{r}
+df2$TIME_WAVE_ACTIVE <- ifelse(df2$SITE == "Facebook" | df2$SITE == "Google" | df2$SITE == "Grindr", 70, 38)
+df2$WAVE_ADJ <- ifelse(df2$WAVE == 4 | df2$WAVE == 1, 1, 2)
+# compile number of test kits ordered per site
+# sum(df2[df2$SITE == "Facebook", ]$ORA_REDEEMED == "Yes") # number of ppl who redeemed test kit from facebook
+df2$SITE_FACTOR <- factor(df2$SITE, levels = c("Facebook", "Grindr", "Google",
+                                        "Instagram", "Jack'd", "Bing"))
+df2$SITE_TYPE <- factor(df2$SITE_TYPE, levels = c("Dating Apps", "Info Sites", "Social Media"))
+```
+
+
+```{r}
+# df2$SITE_TYPE # platform name
+# df2$SITE # site name
+# df2$WAVE # wave number: wave #4 has same sites as wave #1 
+# sum(df2$ORA_REDEEMED == "Yes") # number of ppl who redeemed test kit = 177
+# df2$ORA_WITHIN60 # days since survey start date that ppl redeemed test kit, NA if not redeemed
+# sum(df2[df2$SITE == "Facebook", ]$ORA_REDEEMED == "Yes") # number of ppl who redeemed test kit from facebook
+```
+
+## Fitting Poisson Model
+```{r}
+df2[df2$SITE_TYPE == "Dating Apps" & df2$SITE=="Instagram", ]$SITE_TYPE <- "Social Media" ## 4 of the instagram columns are labeled as being dating apps but they're not
+```
+
+
+```{r}
+df_model_raw <- df2 %>%
+  group_by(SITE_TYPE, WAVE_ADJ) %>%
+  summarise(
+    outcome = sum(ORA_REDEEMED == "Yes"),
+    TIME_WAVE_ACTIVE = first(TIME_WAVE_ACTIVE),
+    .groups = "drop"
+  )
+df_model <- rbind(df_model_raw, data.frame(
+    "SITE_TYPE" = "Info Sites", "WAVE_ADJ" = 2, 
+    "outcome" = 0, "TIME_WAVE_ACTIVE" = 38
+  )
+) # add bing
+
+
+df_model$WAVE_ADJ <- factor(df_model$WAVE_ADJ, levels=c(1, 2))
+df_model$SITE_NAME <- c("Grindr", "Jack'd", "Google", 
+                        "Facebook", "Instagram", "Bing")
+
+primary_fit <- glm(
+  outcome ~ SITE_TYPE * WAVE_ADJ + offset(log(TIME_WAVE_ACTIVE)),
+  family = poisson,
+  data = df_model
+)
+
+summary(primary_fit)
+```
+
+## Estimating cell-specific rates
+
+```{r}
+rate_ests_emmeans <- emmeans(
+  primary_fit,
+  ~ SITE_TYPE * WAVE_ADJ,
+  offset = 0,  
+  type = "response"
+)
+
+rate_ests <- data.frame(rate_ests_emmeans)
+site_names <- data.frame(
+  "SITE_TYPE" = c("Dating Apps", "Dating Apps",
+                  "Social Media", "Social Media",
+                  "Info Sites", "Info Sites"),
+  "WAVE_ADJ" = factor(c(1,2,1,2,1,2), levels=c(1,2)),
+  "SITE_NAME" = c("Grindr", "Jack'd", "Facebook", 
+                  "Instagram", "Google", "Bing")
+)
+rate_ests <- rate_ests %>%
+  left_join(site_names, by = c("SITE_TYPE", "WAVE_ADJ")) %>%
+  mutate(
+    SITE_TYPE = factor(
+      SITE_TYPE,
+      levels = c("Social Media", "Dating Apps", "Info Sites")
+    ),
+    WAVE_ADJ = factor(WAVE_ADJ, levels = c(1, 2))
+  ) %>%
+  arrange(SITE_TYPE, WAVE_ADJ)
+
+kable(rate_ests[, c(9,1,2,3,4, 5)]  %>%
+  mutate(
+    rate = round(rate, 2),
+    SE = round(SE, 2)
+  ),
+      col.names = c("Site Name", "Wave", "Number of days per wave", "Platform Type", "Rate", "95% SE")) 
+```
+
+## Contrasts
+
+```{r}
+df_model2 <- rbind(df_model_raw, data.frame(
+    "SITE_TYPE" = "Info Sites", "WAVE_ADJ" = 2, 
+    "outcome" = 0.5, "TIME_WAVE_ACTIVE" = 38
+  )
+) # add bing with small pseudo count
+df_model2$WAVE_ADJ <- factor(df_model2$WAVE_ADJ, levels=c(1, 2))
+df_model2$SITE_NAME <- c("Grindr", "Jack'd", "Google", 
+                        "Facebook", "Instagram", "Bing")
+primary_fit2 <- glm(
+  outcome ~ SITE_TYPE * WAVE_ADJ + offset(log(TIME_WAVE_ACTIVE)),
+  family = poisson,
+  data = df_model2
+)
+
+rate_ests_emm_pseudo <- emmeans(
+  primary_fit2,
+  ~ SITE_TYPE * WAVE_ADJ,
+  offset = 0,  
+  type = "response"
+)
+
+contrasts_pvals <- data.frame(contrast(rate_ests_emm_pseudo, 
+         method="pairwise", 
+         by="WAVE_ADJ", 
+         type="response", 
+         adjust="hochberg"))
+
+contrasts_pvals$platform_names <- c(
+  "Jack'd vs Bing",
+  "Jack'd vs Instagram",
+  "Bing vs Instagram",
+  "Grindr vs Google",
+  "Grindr vs Facebook",
+  "Google vs Facebook"
+)
+
+kable(contrasts_pvals[, c(1, 10, 9)] %>%
+  mutate(
+    p.value = round(p.value, 4),
+  ) %>%
+  arrange(WAVE_ADJ),
+      col.names = c("Wave", "Contrast", "P-value")) 
+```
+
+# Secondary analysis
+
+## a) Tobacco, alcohol, prescription medications, and other substance use
+```{r}
+# which(df2$ORA_REDEEMED != "Yes" & (df2$ORA_REDEEMED != "No")) 
+df2[118, ]$ORA_REDEEMED <- "No" # there was an "Over 60 Days" but in the analysis should count as No
+
+# None: 0 pts, Problem use: 1 pts, High risk use: > 1 pts
+
+# Alcohol
+df2$alc_score <- 
+  rowSums(df2[, c("Q13_1","Q13_2","Q13_3","Q13_4")] == 1, na.rm=TRUE)
+df2$alc_score_str <- ifelse(
+  df2$alc_score == 0, "None",
+  ifelse(
+    df2$alc_score == 1, "Problem Use",
+    "High Risk Substance Use"
+  )
+)
+# Cannabis
+df2$can_score <- 
+  rowSums(df2[, c("Q13_5","Q13_6","Q13_7")] == 1, na.rm=TRUE)
+df2$can_score_str <- ifelse(
+  df2$can_score == 0, "None",
+  ifelse(
+    df2$can_score == 1, "Problem Use",
+    "High Risk Substance Use"
+  )
+)
+
+# Stimulants - all below collapse problem use and high risk into 1 category
+df2$stim_score <- 
+  rowSums(df2[, c("Q13_8","Q13_9","Q13_10")] == 1, na.rm=TRUE)
+df2$stim_score_str <- ifelse(df2$stim_score < 1, "None", "Problem Use/High Risk Substance Use")
+
+# opioid
+df2$opioid_score <- 
+  rowSums(
+    df2[, c(
+      "Q13_11","Q13_12","Q13_13", 
+      "Q13_14","Q13_15","Q13_16" 
+    )] == 1,
+    na.rm = TRUE
+  )
+df2$opioid_score_str <- ifelse(df2$opioid_score < 1, "None", "Problem Use/High Risk Substance Use")
+
+# sedative 
+df2$sedative_score <- 
+  rowSums(df2[, c("Q13_17","Q13_18","Q13_19")] == 1, na.rm=TRUE)
+df2$sedative_score_str <- ifelse(df2$sedative_score < 1, "None", "Problem Use/High Risk Substance Use")
+
+# prescribed stimulant  
+df2$rx_score <- 
+  rowSums(df2[, c("Q13_20","Q13_21","Q13_22")] == 1)
+df2$rx_score_str <- ifelse(df2$rx_score < 1, "None", "Problem Use/High Risk Substance Use")
+
+# check
+# sum(df2$sedative_score == 0 & df2$ORA_REDEEMED == "Yes")
+# sum(df2$sedative_score == 1 & df2$ORA_REDEEMED == "Yes")
+# sum(df2$sedative_score > 1  & df2$ORA_REDEEMED == "Yes")
+# sum(df2$sedative_score == 0 & df2$ORA_REDEEMED == "No")
+# sum(df2$sedative_score == 1 & df2$ORA_REDEEMED == "No")
+# sum(df2$sedative_score > 1  & df2$ORA_REDEEMED == "No")
+
+```
+
+```{r}
+## p value tests
+
+# Alcohol
+alcohol_pval <- fisher.test(data.frame(
+  rbind(table(df2[df2$ORA_REDEEMED == "Yes", ]$alc_score_str),
+        table(df2[df2$ORA_REDEEMED == "No", ]$alc_score_str)),
+  row.names = c("Ordered test kit", "Did not order test kit")
+  )
+)$p.value
+
+# Cannabis
+can_pval <- fisher.test(data.frame(
+  rbind(table(df2[df2$ORA_REDEEMED == "Yes", ]$can_score_str),
+        table(df2[df2$ORA_REDEEMED == "No", ]$can_score_str)),
+  row.names = c("Ordered test kit", "Did not order test kit")
+  )
+)$p.value
+
+# Stimulants
+stim_pval <- fisher.test(data.frame(
+  rbind(table(df2[df2$ORA_REDEEMED == "Yes", ]$stim_score_str),
+        table(df2[df2$ORA_REDEEMED == "No", ]$stim_score_str)),
+  row.names = c("Ordered test kit", "Did not order test kit")
+  )
+)$p.value
+
+# Opioids
+opioid_pval <- fisher.test(data.frame(
+  rbind(table(df2[df2$ORA_REDEEMED == "Yes", ]$opioid_score_str),
+        table(df2[df2$ORA_REDEEMED == "No", ]$opioid_score_str)),
+  row.names = c("Ordered test kit", "Did not order test kit")
+  )
+)$p.value
+
+# Sedative
+sed_pval <- fisher.test(data.frame(
+  rbind(table(df2[df2$ORA_REDEEMED == "Yes", ]$sedative_score_str),
+        table(df2[df2$ORA_REDEEMED == "No", ]$sedative_score_str)),
+  row.names = c("Ordered test kit", "Did not order test kit")
+  )
+)$p.value
+
+# Prescribed stim
+rx_stim_pval <- fisher.test(data.frame(
+  rbind(table(df2[df2$ORA_REDEEMED == "Yes", ]$rx_score_str),
+        table(df2[df2$ORA_REDEEMED == "No", ]$rx_score_str)),
+  row.names = c("Ordered test kit", "Did not order test kit")
+  )
+)$p.value
+```
+
+
+```{r}
+# list with names of substances and associated p values from before
+substances <- list(
+  Alcohol = list(var = "alc_score_str", pval = alcohol_pval),
+  Cannabis = list(var = "can_score_str", pval = can_pval),
+  Stimulants = list(var = "stim_score_str", pval = stim_pval),
+  Opioid = list(var = "opioid_score_str", pval = opioid_pval),
+  Sedative = list(var = "sedative_score_str", pval = sed_pval),
+  `Prescribed Stimulant` = list(var = "rx_score_str", pval = rx_stim_pval)
+)
+
+# initialize results dataframe with column names
+results_df <- data.frame(
+  Substance = character(),
+  Category = character(),
+  Count_Yes = integer(),
+  Percent_Yes = numeric(),
+  Count_No = integer(),
+  Percent_No = numeric(),
+  P_value = numeric(),
+  stringsAsFactors = FALSE
+)
+
+for (sub in names(substances)) { # repeat per substance
+  var <- substances[[sub]]$var
+  p_val <- substances[[sub]]$pval
+  
+  if (sub %in% c("Stimulants", "Opioid", "Sedative", "Prescribed Stimulant")) {
+    df2[[var]] <- ifelse(df2[[var]] == "None", "None", "Problem Use/High Risk Substance Use") # collapsed problem use and high risk categories
+    category_order <- c("None", "Problem Use/High Risk Substance Use")
+  } else { # separated problem use and high risk categories
+    category_order <- c("None", "Problem Use", "High Risk Substance Use")
+  }
+  
+  tab <- table(df2[[var]], df2$ORA_REDEEMED)
+  
+  first_row <- TRUE
+  for (cat in category_order) {
+    if (!(cat %in% rownames(tab))) {
+      count_yes <- 0
+      count_no <- 0
+    } else {
+      count_yes <- tab[cat, "Yes"]
+      count_no  <- tab[cat, "No"]
+    }
+    
+    percent_yes <- round(100 * count_yes / sum(tab[, "Yes"]), 1)
+    percent_no  <- round(100 * count_no / sum(tab[, "No"]), 1)
+    
+    pval_to_use <- if (first_row) round(p_val, 3) else ""
+    sub_to_use <- if (first_row) sub else ""
+    
+    results_df <- rbind(
+      results_df,
+      data.frame(
+        Substance = sub_to_use,
+        Category = cat,
+        Count_Yes = count_yes,
+        Percent_Yes = percent_yes,
+        Count_No = count_no,
+        Percent_No = percent_no,
+        P_value = pval_to_use,
+        stringsAsFactors = FALSE
+      )
+    )
+    first_row <- FALSE
+  }
+}
+
+kable(results_df,
+      col.names = 
+        c("Substance", "Category", "Ordered test kit", 
+          "Percent",	"Did not order test kit", "Percent",
+          "P-value"))
+```
+
+
+## b) Stage of Health Behavior Change
+```{r}
+df2 <- df2 %>%
+  mutate(
+    stage_behav_change = case_when(
+      Q15_1 == 1 ~ "Precontemplation",
+      Q15_1 == 2 ~ "Contemplation",
+      Q15_1 == 3  ~ "Determination",
+      Q15_1 == 4  ~ "Action",
+      Q15_1 == 5  ~ "Maintenance"
+    )
+  )
+
+stage_behav_pval <- fisher.test(data.frame(
+  rbind(table(df2[df2$ORA_REDEEMED == "Yes", ]$stage_behav_change),
+        table(df2[df2$ORA_REDEEMED == "No", ]$stage_behav_change)),
+  row.names = c("Ordered test kit", "Did not order test kit")
+  )
+)$p.value
+```
+
+```{r}
+stage_levels <- c(
+  "Precontemplation",
+  "Contemplation",
+  "Determination",
+  "Action",
+  "Maintenance"
+)
+
+stage_labels <- c(
+  "I do not see any need to regularly test for HIV",
+  "I think I should get tested for HIV regularly, but I am not sure",
+  "I am ready to start getting regularly tested for HIV",
+  "I am trying to get tested regularly for HIV",
+  "I have been getting tested for HIV regularly over the past few years"
+)
+
+results_stage <- data.frame(
+  Stage = character(),
+  Description = character(),
+  Count_Yes = integer(),
+  Percent_Yes = numeric(),
+  Count_No = integer(),
+  Percent_No = numeric(),
+  P_value = character(),
+  stringsAsFactors = FALSE
+)
+
+tab <- table(df2$stage_behav_change, df2$ORA_REDEEMED)
+
+first_row <- TRUE
+for (i in seq_along(stage_levels)) {
+  lvl <- stage_levels[i]
+  
+  count_yes <- ifelse(lvl %in% rownames(tab), tab[lvl, "Yes"], 0)
+  count_no  <- ifelse(lvl %in% rownames(tab), tab[lvl, "No"], 0)
+  
+  percent_yes <- round(100 * count_yes / sum(tab[, "Yes"]), 1)
+  percent_no  <- round(100 * count_no / sum(tab[, "No"]), 1)
+  
+  results_stage <- rbind(
+    results_stage,
+    data.frame(
+      Stage = stage_levels[i],
+      Description = stage_labels[i],
+      Count_Yes = count_yes,
+      Percent_Yes = percent_yes,
+      Count_No = count_no,
+      Percent_No = percent_no,
+      P_value = if (first_row) round(stage_behav_pval, 3) else "",
+      stringsAsFactors = FALSE
+    )
+  )
+  first_row <- FALSE
+}
+
+kable(
+  results_stage,
+  col.names = c(
+    "Attitude", "Description",
+    "Ordered test kit", "Percent",
+    "Did not order test kit", "Percent",
+    "P-value"
+  )
+)
+```
+
+
+## c) Attitudes toward human immunodeficiency virus (HIV) testing
+```{r}
+df2$test_attitudes1 <- ifelse(df2$Q15_3 == 1, "Agree", "Disagree")
+df2$test_attitudes2 <- ifelse(df2$Q15_4 == 1, "Agree", "Disagree")
+df2$test_attitudes3 <- ifelse(df2$Q15_5 == 1, "Agree", "Disagree")
+df2$test_attitudes4 <- ifelse(df2$Q15_6 == 1, "Agree", "Disagree")
+df2$test_attitudes5 <- ifelse(df2$Q15_7 == 1, "Agree", "Disagree")
+
+test_attitudes1_pval <- fisher.test(data.frame(
+  rbind(table(df2[df2$ORA_REDEEMED == "Yes", ]$test_attitudes1),
+        table(df2[df2$ORA_REDEEMED == "No", ]$test_attitudes1)),
+  row.names = c("Ordered test kit", "Did not order test kit")
+  )
+)$p.value
+
+test_attitudes2_pval <- fisher.test(data.frame(
+  rbind(table(df2[df2$ORA_REDEEMED == "Yes", ]$test_attitudes2),
+        table(df2[df2$ORA_REDEEMED == "No", ]$test_attitudes2)),
+  row.names = c("Ordered test kit", "Did not order test kit")
+  )
+)$p.value
+
+test_attitudes3_pval <- fisher.test(data.frame(
+  rbind(table(df2[df2$ORA_REDEEMED == "Yes", ]$test_attitudes3),
+        table(df2[df2$ORA_REDEEMED == "No", ]$test_attitudes3)),
+  row.names = c("Ordered test kit", "Did not order test kit")
+  )
+)$p.value
+
+test_attitudes4_pval <- fisher.test(data.frame(
+  rbind(table(df2[df2$ORA_REDEEMED == "Yes", ]$test_attitudes4),
+        table(df2[df2$ORA_REDEEMED == "No", ]$test_attitudes4)),
+  row.names = c("Ordered test kit", "Did not order test kit")
+  )
+)$p.value
+
+test_attitudes5_pval <- fisher.test(data.frame(
+  rbind(table(df2[df2$ORA_REDEEMED == "Yes", ]$test_attitudes5),
+        table(df2[df2$ORA_REDEEMED == "No", ]$test_attitudes5)),
+  row.names = c("Ordered test kit", "Did not order test kit")
+  )
+)$p.value
+```
+
+```{r}
+attitudes <- list(
+  "Getting tested for HIV helps people feel better" =
+    list(var = "test_attitudes1", pval = test_attitudes1_pval),
+  "Getting tested for HIV helps people from getting HIV" =
+    list(var = "test_attitudes2", pval = test_attitudes2_pval),
+  "People in my life would leave if I had HIV" =
+    list(var = "test_attitudes3", pval = test_attitudes3_pval),
+  "People who tested positive for HIV should hide it from others" =
+    list(var = "test_attitudes4", pval = test_attitudes4_pval),
+  "I would rather not know if I have HIV" =
+    list(var = "test_attitudes5", pval = test_attitudes5_pval)
+)
+
+results_attitudes <- data.frame(
+  Item = character(),
+  Category = character(),
+  Count_Yes = integer(),
+  Percent_Yes = numeric(),
+  Count_No = integer(),
+  Percent_No = numeric(),
+  P_value = character(),
+  stringsAsFactors = FALSE
+)
+
+for (item in names(attitudes)) {
+  var <- attitudes[[item]]$var
+  p_val <- attitudes[[item]]$pval
+  
+  tab <- table(df2[[var]], df2$ORA_REDEEMED)
+  first_row <- TRUE
+  
+  for (cat in c("Agree", "Disagree")) {
+    count_yes <- ifelse(cat %in% rownames(tab), tab[cat, "Yes"], 0)
+    count_no  <- ifelse(cat %in% rownames(tab), tab[cat, "No"], 0)
+    
+    percent_yes <- round(100 * count_yes / sum(tab[, "Yes"]), 1)
+    percent_no  <- round(100 * count_no / sum(tab[, "No"]), 1)
+    
+    results_attitudes <- rbind(
+      results_attitudes,
+      data.frame(
+        Item = if (first_row) item else "",
+        Category = cat,
+        Count_Yes = count_yes,
+        Percent_Yes = percent_yes,
+        Count_No = count_no,
+        Percent_No = percent_no,
+        P_value = if (first_row) round(p_val, 3) else "",
+        stringsAsFactors = FALSE
+      )
+    )
+    first_row <- FALSE
+  }
+}
+
+kable(results_attitudes,
+      col.names = c(
+        "Attitude", "Response",
+        "Ordered test kit", "Percent",
+        "Did not order test kit", "Percent",
+        "P-value"
+      ))
+```
+
+
+## d) Attitudes toward human immunodeficiency virus (HIV) treatment (continuous scale from 1 [strongly disagree] to 7 [strongly agree])
+```{r}
+
+
+hiv_trt_atts1_pval <- wilcox.test(
+  Q94_1 ~ ORA_REDEEMED,
+  data = df2,
+  exact = TRUE
+)$p.value
+
+hiv_trt_atts2_pval <- wilcox.test(
+  Q94_5 ~ ORA_REDEEMED,
+  data = df2,
+  exact = TRUE
+)$p.value
+
+hiv_trt_atts3_pval <- wilcox.test(
+  Q94_6 ~ ORA_REDEEMED,
+  data = df2,
+  exact = TRUE
+)$p.value
+
+hiv_trt_atts4_pval <- wilcox.test(
+  Q94_7 ~ ORA_REDEEMED,
+  data = df2,
+  exact = TRUE
+)$p.value
+
+hiv_trt_atts5_pval <- wilcox.test(
+  Q94_8 ~ ORA_REDEEMED,
+  data = df2,
+  exact = TRUE
+)$p.value
+
+hiv_trt_atts6_pval <- wilcox.test(
+  Q94_9 ~ ORA_REDEEMED,
+  data = df2,
+  exact = TRUE
+)$p.value
+
+hiv_trt_atts7_pval <- wilcox.test(
+  Q94_10 ~ ORA_REDEEMED,
+  data = df2,
+  exact = TRUE
+)$p.value
+
+hiv_trt_atts8_pval <- wilcox.test(
+  Q94_11 ~ ORA_REDEEMED,
+  data = df2,
+  exact = TRUE
+)$p.value
+
+hiv_trt_atts9_pval <- wilcox.test(
+  Q94_12 ~ ORA_REDEEMED,
+  data = df2,
+  exact = TRUE
+)$p.value
+
+hiv_trt_atts10_pval <- wilcox.test(
+  Q94_13 ~ ORA_REDEEMED,
+  data = df2,
+  exact = TRUE
+)$p.value
+```
+```{r}
+hiv_trt_items <- list(
+  "I am less threatened by the idea of being HIV positive than I used to be" =
+    list(var = "Q94_1",  pval = hiv_trt_atts1_pval),
+  "I am less worried about HIV infection than I used to be" =
+    list(var = "Q94_5",  pval = hiv_trt_atts2_pval),
+  "I think HIV/AIDS is less of a problem than it used to be" =
+    list(var = "Q94_6",  pval = hiv_trt_atts3_pval),
+  "I think HIV/AIDS is a less serious threat than it used to be because of new HIV/AIDS treatments" =
+    list(var = "Q94_7",  pval = hiv_trt_atts4_pval),
+  "I am much less concerned about becoming HIV positive myself because of new HIV/AIDS treatments" =
+    list(var = "Q94_8",  pval = hiv_trt_atts5_pval),
+  "I think that condom use during sex is less necessary now that new HIV/AIDS treatments are available" =
+    list(var = "Q94_9",  pval = hiv_trt_atts6_pval),
+  "I think that someone who is HIV positive now needs to care less about condom use" =
+    list(var = "Q94_10", pval = hiv_trt_atts7_pval),
+  "I think that the need for condom use is less than it used to be, because you can always start new treatments" =
+    list(var = "Q94_11", pval = hiv_trt_atts8_pval),
+  "I think that someone who is HIV positive and uses new HIV/AIDS treatments can be cured" =
+    list(var = "Q94_12", pval = hiv_trt_atts9_pval),
+  "I think that new HIV/AIDS treatments can eradicate the virus from your body" =
+    list(var = "Q94_13", pval = hiv_trt_atts10_pval)
+)
+
+# initialize results dataframe
+results_hiv_trt <- data.frame(
+  Statement = character(),
+  Ordered_Test_Kit = character(),
+  Did_Not_Order_Test_Kit = character(),
+  P_value = character(),
+  stringsAsFactors = FALSE
+)
+
+for (item in names(hiv_trt_items)) {
+  var <- hiv_trt_items[[item]]$var
+  p_val <- hiv_trt_items[[item]]$pval
+  
+  yes_vals <- df2[df2$ORA_REDEEMED == "Yes", var]
+  no_vals  <- df2[df2$ORA_REDEEMED == "No",  var]
+  
+  yes_mean <- mean(yes_vals, na.rm = TRUE)
+  yes_sd   <- sd(yes_vals, na.rm = TRUE)
+  
+  no_mean <- mean(no_vals, na.rm = TRUE)
+  no_sd   <- sd(no_vals, na.rm = TRUE)
+  
+  results_hiv_trt <- rbind(
+    results_hiv_trt,
+    data.frame(
+      Statement = item,
+      Ordered_Test_Kit =
+        paste0(round(yes_mean, 1), " (", round(yes_sd, 1), ")"),
+      Did_Not_Order_Test_Kit =
+        paste0(round(no_mean, 1), " (", round(no_sd, 1), ")"),
+      P_value = round(p_val, 3),
+      stringsAsFactors = FALSE
+    )
+  )
+}
+
+# display table
+kable(
+  results_hiv_trt,
+  col.names = c(
+    "Statements",
+    "Ordered test kit: Mean (SD)",
+    "Did not order test kit: Mean (SD)",
+    "P-value"
+  )
+)
+```
+
+
+## e) Human immunodeficiency virus (HIV)-related stigma among study participants
+```{r}
+hiv_stigma1_pval <- wilcox.test(
+  Q14_2 ~ ORA_REDEEMED,
+  data = df2,
+  exact = TRUE
+)$p.value
+
+hiv_stigma2_pval <- wilcox.test(
+  Q14_3 ~ ORA_REDEEMED,
+  data = df2,
+  exact = TRUE
+)$p.value
+
+hiv_stigma3_pval <- wilcox.test(
+  Q14_4 ~ ORA_REDEEMED,
+  data = df2,
+  exact = TRUE
+)$p.value
+
+hiv_stigma4_pval <- wilcox.test(
+  Q14_5 ~ ORA_REDEEMED,
+  data = df2,
+  exact = TRUE
+)$p.value
+```
+
+```{r}
+likert_levels <- c(
+  "Strongly agree", "Agree", "Somewhat agree",
+  "Neither agree nor disagree",
+  "Somewhat disagree", "Disagree", "Strongly disagree"
+)
+
+stigma_items <- list(
+  "I feel afraid of people living with HIV/AIDS" =
+    list(var = "Q14_2", pval = hiv_stigma1_pval),
+  "I could not be friends with someone who has HIV/AIDS" =
+    list(var = "Q14_3", pval = hiv_stigma2_pval),
+  "People who get HIV/AIDS through sex or drug use got what they deserve" =
+    list(var = "Q14_4", pval = hiv_stigma3_pval),
+  "I feel anger toward people with HIV/AIDS" =
+    list(var = "Q14_5", pval = hiv_stigma4_pval)
+)
+
+results_stigma <- data.frame(
+  Item = character(),
+  Category = character(),
+  Count_Yes = integer(),
+  Percent_Yes = numeric(),
+  Count_No = integer(),
+  Percent_No = numeric(),
+  P_value = character(),
+  stringsAsFactors = FALSE
+)
+
+for (item in names(stigma_items)) {
+  var <- stigma_items[[item]]$var
+  p_val <- stigma_items[[item]]$pval
+  
+  tab <- table(factor(df2[[var]], levels = 1:7, labels = likert_levels),
+               df2$ORA_REDEEMED)
+  
+  first_row <- TRUE
+  for (cat in likert_levels) {
+    count_yes <- ifelse(cat %in% rownames(tab), tab[cat, "Yes"], 0)
+    count_no  <- ifelse(cat %in% rownames(tab), tab[cat, "No"], 0)
+    
+    percent_yes <- round(100 * count_yes / sum(tab[, "Yes"]), 1)
+    percent_no  <- round(100 * count_no / sum(tab[, "No"]), 1)
+    
+    results_stigma <- rbind(
+      results_stigma,
+      data.frame(
+        Item = if (first_row) item else "",
+        Category = cat,
+        Count_Yes = count_yes,
+        Percent_Yes = percent_yes,
+        Count_No = count_no,
+        Percent_No = percent_no,
+        P_value = if (first_row) round(p_val, 3) else "",
+        stringsAsFactors = FALSE
+      )
+    )
+    first_row <- FALSE
+  }
+}
+
+kable(results_stigma,
+      col.names = c(
+        "HIV stigma", "Response",
+        "Ordered test kit", "Percent",
+        "Did not order test kit", "Percent",
+        "P-value"
+      ))
+```
+
+
+## f) Medical mistrust
+
+```{r}
+med_mistrust1_pval <- wilcox.test(
+  Q16_1 ~ ORA_REDEEMED,
+  data = df2,
+  exact = TRUE
+)$p.value
+
+med_mistrust2_pval <- wilcox.test(
+  Q16_2 ~ ORA_REDEEMED,
+  data = df2,
+  exact = TRUE
+)$p.value
+
+med_mistrust3_pval <- wilcox.test(
+  Q16_3 ~ ORA_REDEEMED,
+  data = df2,
+  exact = TRUE
+)$p.value
+
+med_mistrust4_pval <- wilcox.test(
+  Q16_4 ~ ORA_REDEEMED,
+  data = df2,
+  exact = TRUE
+)$p.value
+
+med_mistrust5_pval <- wilcox.test(
+  Q16_5 ~ ORA_REDEEMED,
+  data = df2,
+  exact = TRUE
+)$p.value
+
+med_mistrust6_pval <- wilcox.test(
+  Q16_6 ~ ORA_REDEEMED,
+  data = df2,
+  exact = TRUE
+)$p.value
+
+med_mistrust7_pval <- wilcox.test(
+  Q16_7 ~ ORA_REDEEMED,
+  data = df2,
+  exact = TRUE
+)$p.value
+```
+```{r}
+mistrust_levels <- c(
+  "Strongly agree", "Agree", "Disagree", "Strongly disagree"
+)
+
+mistrust_items <- list(
+  "You’d better be cautious when dealing with health care organizations" =
+    list(var = "Q16_1", pval = med_mistrust1_pval),
+  "Patients have sometimes been deceived or misled by health care organizations" =
+    list(var = "Q16_2", pval = med_mistrust2_pval),
+  "When health care organizations make mistakes they usually cover it up" =
+    list(var = "Q16_3", pval = med_mistrust3_pval),
+  "Health care organizations have sometimes done harmful experiments on patients without their knowledge" =
+    list(var = "Q16_4", pval = med_mistrust4_pval),
+  "Health care organizations don’t always keep your information totally private" =
+    list(var = "Q16_5", pval = med_mistrust5_pval),
+  "Sometimes I wonder if health care organizations really know what they are doing" =
+    list(var = "Q16_6", pval = med_mistrust6_pval),
+  "Mistakes are common in health care organizations" =
+    list(var = "Q16_7", pval = med_mistrust7_pval)
+)
+
+results_mistrust <- data.frame(
+  Item = character(),
+  Category = character(),
+  Count_Yes = integer(),
+  Percent_Yes = numeric(),
+  Count_No = integer(),
+  Percent_No = numeric(),
+  P_value = character(),
+  stringsAsFactors = FALSE
+)
+
+for (item in names(mistrust_items)) {
+  var <- mistrust_items[[item]]$var
+  p_val <- mistrust_items[[item]]$pval
+  
+
+  if(item == 
+     "You’d better be cautious when dealing with health care organizations") {
+    level = c(28, 30, 33, 34)
+  }
+  else {
+    level = c(1, 2, 6, 7)
+  }
+  
+  tab <- table(
+      factor(
+        df2[[var]],
+        levels = level,
+        labels = c(
+          "Strongly agree",
+          "Agree",
+          "Disagree",
+          "Strongly disagree"
+        )
+      ),
+      df2$ORA_REDEEMED,
+      useNA = "no"
+    )
+  
+  first_row <- TRUE
+  for (cat in mistrust_levels) {
+    count_yes <- ifelse(cat %in% rownames(tab), tab[cat, "Yes"], 0)
+    count_no  <- ifelse(cat %in% rownames(tab), tab[cat, "No"], 0)
+    
+    percent_yes <- round(100 * count_yes / sum(tab[, "Yes"]), 1)
+    percent_no  <- round(100 * count_no / sum(tab[, "No"]), 1)
+    
+    results_mistrust <- rbind(
+      results_mistrust,
+      data.frame(
+        Item = if (first_row) item else "",
+        Category = cat,
+        Count_Yes = count_yes,
+        Percent_Yes = percent_yes,
+        Count_No = count_no,
+        Percent_No = percent_no,
+        P_value = if (first_row) round(p_val, 3) else "",
+        stringsAsFactors = FALSE
+      )
+    )
+    first_row <- FALSE
+  }
+}
+
+kable(results_mistrust,
+      col.names = c(
+        "Medical mistrust", "Response",
+        "Ordered test kit", "Percent",
+        "Did not order test kit", "Percent",
+        "P-value"
+      ))
+```
+
+## Figure S1
+```{r}
+library(ggplot2)
+```
+
+
+```{r}
+q7_vars <- c(
+  "Q7_10_FU1", "Q7_11_FU1", "Q7_12_FU1", "Q7_13_FU1",
+  "Q7_14_FU1", "Q7_15_FU1", "Q7_16_FU1", "Q7_17_FU1",
+  "Q7_18_FU1", "Q7_19_FU1", "Q7_2_FU1",  "Q7_3_FU1",
+  "Q7_4_FU1",  "Q7_5_FU1",  "Q7_6_FU1",  "Q7_7_FU1",
+  "Q7_8_FU1",  "Q7_9_FU1"
+)
+
+question_labels <- c(
+  Q7_10_FU1 = "I am ashamed to tell others that I am on PrEP.",
+  Q7_11_FU1 = "Not knowing if there are long-term side effects of taking a daily HIV pill makes me very uncomfortable.",
+  Q7_12_FU1 = "I would be more comfortable using PrEP if I just knew how it would affect my health.",
+  Q7_13_FU1 = "PrEP is too expensive.",
+  Q7_14_FU1 = "Gay and bisexual men who take PrEP are being responsible.",
+  Q7_15_FU1 = "PrEP is an excuse for gay and bisexual men to avoid using condoms.",
+  Q7_16_FU1 = "Gay and bisexual men who take PrEP are risk-takers.",
+  Q7_17_FU1 = "PrEP gives gay and bisexual men more options to remain safe.",
+  Q7_18_FU1 = "Gay and bisexual men who take PrEP are promiscuous.",
+  Q7_19_FU1 = "PrEP is only partially effective.",
+  Q7_2_FU1  = "Taking a daily HIV pill is a good way to protect myself from getting HIV.",
+  Q7_3_FU1  = "By taking PrEP, I am lowering my chances of getting infected with HIV.",
+  Q7_4_FU1  = "Taking PrEP means I can have sex without using condoms.",
+  Q7_5_FU1  = "Having PrEP available makes safer sex less important.",
+  Q7_6_FU1  = "Taking PrEP makes me more likely to have sex without using a condom.",
+  Q7_7_FU1  = "I feel uncomfortable taking HIV medication when I don’t have HIV.",
+  Q7_8_FU1  = "I worry that others will think I have HIV if they find out I am on PrEP.",
+  Q7_9_FU1  = "I worry about what other people would think of me if they knew I was on PrEP."
+)
+
+response_labels <- c(
+  "1" = "Strongly agree",
+  "2" = "Somewhat agree",
+  "3" = "Neither agree or disagree",
+  "4" = "Somewhat disagree",
+  "5" = "Strongly disagree"
+)
+
+df_s1 <- df %>%
+  select(all_of(q7_vars)) %>%
+  pivot_longer(
+    cols = everything(),
+    names_to = "Question",
+    values_to = "Response"
+  ) %>%
+  filter(Response != 9999) %>%
+  mutate(
+    Response = factor(
+      Response,
+      levels = 1:5,
+      labels = response_labels
+    )
+  ) %>%
+  count(Question, Response) %>%
+  group_by(Question) %>%
+  mutate(
+    percent = n / sum(n),
+    label = scales::percent(percent, accuracy = 0.01)
+  ) %>%
+  ungroup()
+```
+
+
+```{r, fig.width=30, fig.height=10}
+ggplot(df_s1, aes(y = Question, x = percent, fill = Response)) +
+  geom_col() +
+  geom_text(
+    aes(label = label),
+    position = position_stack(vjust = 0.5),
+    size = 5,
+    color = "black"
+  ) +
+  scale_x_continuous(labels = scales::percent) +
+  scale_y_discrete(labels = question_labels) +
+  scale_fill_brewer(palette = "RdYlBu", direction = -1) +
+  labs(
+    y = "",
+    x = "",
+    fill = "Response",
+    title="Figure S1 from Appendix 3"
+  ) +
+  theme(
+    plot.title = element_text(size = 24),
+    axis.text.y = element_text(size = 20),
+    panel.grid.major.y = element_blank(),
+    legend.text = element_text(size = 20),  
+    legend.title = element_text(size = 20)  
+  )
+```
+
+## Figure S2
+```{r}
+q8_1_vars <- c(
+  "Q8_1_10_FU1","Q8_1_11_FU1","Q8_1_12_FU1","Q8_1_13_FU1",
+  "Q8_1_1_FU1","Q8_1_2_FU1","Q8_1_3_FU1","Q8_1_4_FU1",
+  "Q8_1_5_FU1","Q8_1_6_FU1","Q8_1_7_FU1","Q8_1_8_FU1",
+  "Q8_1_9_FU1"
+)
+
+q8_1_labels <- c(
+  Q8_1_10_FU1 = "Potentially having long-term health effects because of PrEP",
+  Q8_1_11_FU1 = "If I do become HIV+, certain medicines won’t work because I was taking PrEP",
+  Q8_1_12_FU1 = "I do not really think I am at high enough risk for HIV to warrant taking PrEP",
+  Q8_1_13_FU1 = "I would be ashamed to take PrEP",
+  Q8_1_1_FU1  = "Having to take a pill every day",
+  Q8_1_2_FU1  = "Potentially experiencing side effects",
+  Q8_1_3_FU1  = "PrEP not protecting me against HIV infection completely",
+  Q8_1_4_FU1  = "PrEP might make me more willing to have anal sex without a condom",
+  Q8_1_5_FU1  = "Taking PrEP might make my partner(s) expect me to have anal sex without a condom",
+  Q8_1_6_FU1  = "Having to take PrEP means I’m putting myself at risk for HIV",
+  Q8_1_7_FU1  = "People will see me taking the medication and will want to know why I’m taking it",
+  Q8_1_8_FU1  = "People will see me taking the medication and think that I have HIV",
+  Q8_1_9_FU1  = "I don’t want to talk to my doctor about my sex life"
+)
+
+q8_1_response_labels <- c(
+  "1" = "Not at all important",
+  "2" = "Slightly important",
+  "3" = "Moderately important",
+  "4" = "Very important",
+  "5" = "Extremely important"
+)
+
+df_q8_1 <- df %>%
+  select(all_of(q8_1_vars)) %>%
+  pivot_longer(
+    cols = everything(),
+    names_to = "Question",
+    values_to = "Response"
+  ) %>%
+  filter(Response != 9999) %>%
+  mutate(
+    Response = factor(
+      Response,
+      levels = 1:5,
+      labels = q8_1_response_labels
+    )
+  ) %>%
+  count(Question, Response) %>%
+  group_by(Question) %>%
+  mutate(
+    percent = n / sum(n),
+    label = scales::percent(percent, accuracy = 0.01)
+  ) %>%
+  ungroup()
+```
+
+```{r, fig.width=20, fig.height=10}
+ggplot(df_q8_1, aes(y = Question, x = percent, fill = Response)) +
+  geom_col() +
+  geom_text(
+    aes(label = label),
+    position = position_stack(vjust = 0.5),
+    size = 5,
+    color = "black"
+  ) +
+  scale_x_continuous(labels = scales::percent) +
+  scale_y_discrete(labels = q8_1_labels) +
+  scale_fill_brewer(palette = "RdYlBu", direction = -1) +
+  labs(
+    y = NULL,
+    x = "Percent",
+    fill = "Importance",
+    title="Figure S2 from Appendix 3"
+  ) +
+  theme(
+      plot.title = element_text(size = 24),
+      axis.text.y = element_text(size = 20),
+      panel.grid.major.y = element_blank(),
+      legend.text = element_text(size = 20),  
+      legend.title = element_text(size = 20)  
+    )
+```
+
+## Figure S3
+```{r}
+q8_2_vars <- c(
+  "Q8_2_1_FU1","Q8_2_2_FU1","Q8_2_3_FU1","Q8_2_4_FU1",
+  "Q8_2_5_FU1","Q8_2_6_FU1","Q8_2_7_FU1","Q8_2_8_FU1"
+)
+
+q8_2_labels <- c(
+  Q8_2_1_FU1 = "Not having to pay for PrEP or because it is affordable",
+  Q8_2_2_FU1 = "Getting free HIV/STD testing while I am on PrEP",
+  Q8_2_3_FU1 = "Getting free one-on-one counseling and support while I am on PrEP",
+  Q8_2_4_FU1 = "Not having to go to my regular doctor to get PrEP",
+  Q8_2_5_FU1 = "Hearing from my doctor that taking PrEP would be best for my health",
+  Q8_2_6_FU1 = "I am concerned that, even if I use condoms, I could still get HIV",
+  Q8_2_7_FU1 = "I am a gay/bisexual guy or a transwoman and I know I am at really high risk for HIV",
+  Q8_2_8_FU1 = "Hearing from my friends that they had good experiences with PrEP"
+)
+
+q8_2_response_labels <- c(
+  "1" = "Extremely important",
+  "2" = "Very important",
+  "3" = "Moderately important",
+  "4" = "Slightly important",
+  "5" = "Not at all important"
+)
+
+df_q8_2 <- df %>%
+  select(all_of(q8_2_vars)) %>%
+  pivot_longer(
+    cols = everything(),
+    names_to = "Question",
+    values_to = "Response"
+  ) %>%
+  filter(Response != 9999) %>%
+  mutate(
+    Response = factor(
+      Response,
+      levels = 1:5,
+      labels = q8_2_response_labels
+    )
+  ) %>%
+  count(Question, Response) %>%
+  group_by(Question) %>%
+  mutate(
+    percent = n / sum(n),
+    label = scales::percent(percent, accuracy = 0.01)
+  ) %>%
+  ungroup()
+```
+
+```{r, fig.width=20, fig.height=10}
+ggplot(df_q8_2, aes(y = Question, x = percent, fill = Response)) +
+  geom_col() +
+  geom_text(
+    aes(label = label),
+    position = position_stack(vjust = 0.5),
+    size = 5,
+    color = "black"
+  ) +
+  scale_x_continuous(labels = scales::percent) +
+  scale_y_discrete(labels = q8_2_labels) +
+  scale_fill_brewer(palette = "RdYlBu", direction = -1) +
+  labs(
+    y = NULL,
+    x = "Percent",
+    fill = "Importance",
+    title="Figure S3 from Appendix 3"
+  ) +
+  theme(
+    plot.title = element_text(size = 24),
+    axis.text.y = element_text(size = 20),
+    panel.grid.major.y = element_blank(),
+    legend.text = element_text(size = 20),  
+    legend.title = element_text(size = 20)  
+  )
+```
+
+
+# Reflection
+
+
+## Primary Analysis
+Table 1 can be almost perfectly replicated, with a few small differences and notes:
+
+- The race section's counts and percentages are out of 250 instead of 254, as there are 4 participants whose race was left as NA so they were excluded. 
+- There was one individual who took the HIV test but also marked a reason not to take it, so they were excluded from the "reasons not to take HIV test" section. 
+- The IQR for the age in years, as well as the median and IQR for months since last HIV test are slightly different from the original Table 1. 
+
+As for the contrast significance testing, the p-values obtained are slightly different from the original, although the conclusions on significance are the same, with all the platforms in Wave 1 not being significantly different from each other at the 0.05 level, and all the platforms in Wave 2 being significantly different from each other (mainly due to Jack'd having a lot more test kits ordered than any other platform). However, due to Bing having exactly zero test kits ordered, with the original model, the p-values for both of Wave 2's contrasts that involve Bing are highly non-significant. This may be due to slight differences in how R and SAS calculate the test statistics. However, by adding a small pseudocount of 0.5 to Bing's test kit number to stabilize the estimate, the p-values flip from being insignificant to a similar significance as the paper, with the contrasts for Bing vs Instagram being slightly less significant than Bing vs Jack'd or Jack'd vs Instagram. 
+
+## Secondary Analysis
+The secondary analysis, depicted in Appendix 3, is also able to be almost perfectly replicated. The only difference is that for the first table on alcohol/substance use, I was unable to find and account for the 5 rows for the sedative and prescribed stimulants category that were listed as missing, so my counts and p-values were slightly off.
+
+# References
+Manuscript of the original paper and its appendices, which were followed to reproduce the results, can be found here:
+https://pmc.ncbi.nlm.nih.gov/articles/PMC9591705/
+
+https://bookdown.org/yihui/rmarkdown-cookbook/text-width.html
+
+https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/wilcox.test
+
+ChatGPT was used to generate some sections of this code as well as for some editing and debugging. 
