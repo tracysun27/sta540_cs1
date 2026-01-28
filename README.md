@@ -22,18 +22,18 @@ To determine if there is a relationship between the primary outcome (number of s
 - Opinions about PrEP measures 
   
 ## Table 1
-<img width="441" height="571" alt="Screenshot 2026-01-28 at 3 42 18 PM" src="https://github.com/user-attachments/assets/50b5d269-bf32-42a4-bd4e-227c5759b796" />
+<img width="447" height="555" alt="Screenshot 2026-01-28 at 4 09 23 PM" src="https://github.com/user-attachments/assets/be89f29b-27e4-46bb-bf09-2b9a893f6206" />
 
 ## Primary Analysis
-<img width="519" height="367" alt="Screenshot 2026-01-28 at 3 41 26 PM" src="https://github.com/user-attachments/assets/c0abe35e-8b0e-42f1-a9d9-a4c25fc672d7" />
+<img width="559" height="414" alt="Screenshot 2026-01-28 at 4 09 37 PM" src="https://github.com/user-attachments/assets/a267f8a0-e1f7-4bdc-a344-9b1d878d7c7e" />
 
 ## Secondary Analysis
-<img width="437" height="422" alt="Screenshot 2026-01-28 at 3 43 31 PM" src="https://github.com/user-attachments/assets/0837095c-967e-4916-9fd5-a2b8bf9dd538" />
-<img width="436" height="375" alt="Screenshot 2026-01-28 at 3 43 46 PM" src="https://github.com/user-attachments/assets/a60a067a-efb5-4824-bd07-a06666bb1fce" />
-<img width="436" height="375" alt="Screenshot 2026-01-28 at 3 43 55 PM" src="https://github.com/user-attachments/assets/01c43420-0869-4be8-a8cc-f86f60bd38e3" />
-<img width="436" height="325" alt="Screenshot 2026-01-28 at 3 44 24 PM" src="https://github.com/user-attachments/assets/0bdffd11-db2b-4dd3-81ef-a6aa2b4d126d" />
-<img width="436" height="548" alt="Screenshot 2026-01-28 at 3 44 37 PM" src="https://github.com/user-attachments/assets/a5a956c4-683d-4f5e-8a35-39bbf148258b" />
-<img width="436" height="307" alt="Screenshot 2026-01-28 at 3 44 46 PM" src="https://github.com/user-attachments/assets/e558e620-625b-4fb4-a764-782388e8bc81" />
+<img width="638" height="418" alt="Screenshot 2026-01-28 at 4 09 51 PM" src="https://github.com/user-attachments/assets/54c9017e-3b41-468f-9874-95c516ec4705" />
+<img width="638" height="262" alt="Screenshot 2026-01-28 at 4 10 06 PM" src="https://github.com/user-attachments/assets/9af513fc-ab7f-4c0e-94b3-0e0c9310722e" />
+<img width="638" height="324" alt="Screenshot 2026-01-28 at 4 10 16 PM" src="https://github.com/user-attachments/assets/9a842be3-9ec4-40f4-b8c4-018736c81275" />
+<img width="492" height="560" alt="Screenshot 2026-01-28 at 4 10 30 PM" src="https://github.com/user-attachments/assets/da84856d-12d4-482f-80f2-f5c176cf14a7" />
+<img width="544" height="560" alt="Screenshot 2026-01-28 at 4 10 40 PM" src="https://github.com/user-attachments/assets/5d30b8c2-4ac9-4e2b-ab8a-0b722ba69607" />
+<img width="529" height="655" alt="Screenshot 2026-01-28 at 4 10 52 PM" src="https://github.com/user-attachments/assets/4bb01438-d246-4abe-802b-6e080e028fa3" />
 
 ## Additional Figures
 <img width="1303" height="432" alt="Screenshot 2026-01-28 at 3 45 08 PM" src="https://github.com/user-attachments/assets/1fc23ff6-adce-4f17-b3f1-974c76e2208c" />
