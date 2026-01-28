@@ -5,6 +5,22 @@
 
 The displayed results of the reproduction can also be found in the sta540_cs1.pdf file.
 
+## Study Overview
+### Background/Motivation
+HIV is a sexually transmitted infection that attacks the human immune system, and results in AIDS at the most advanced stage of infection. Once they get HIV, a patient cannot be cured. Therefore, prevention and treatment efforts for HIV are very important. In the 1980s-1990s, the HIV pandemic swept the globe, and in particular devastated queer communities due to many gay men passing away from the disease. Men who have sex with other men, referred to as MSM in the study, are at particular risk of HIV if they have anal sex without protection. PrEP, the prevention method discussed in this study which is meant to be taken as a daily pill, has been shown to be very effective at reducing the risk of infection. Young MSM who are part of minority groups (Black/Latinx) are a group that are at risk but do not often know of or use PrEP. They also may engage in other behaviors that could put them at higher risk of HIV, such as binge drinking or drug usage. Because of this, spreading awareness for HIV prevention and examining its relationship to other risk factors is particularly important.
+
+### Primary objective
+To determine the difference in effectiveness between several different forms of internet outreach, in particular social media platforms (Facebook and Instagram), dating apps used by MSM (Grindr and Jack'd), and search engines (Google and Bing), in encouraging MSM who are at higher risk of HIV to engage in HIV prevention efforts. This is determined by the rate/number of HIV self-test kits that participants in the study order. 
+
+### Secondary objective
+To determine if there is a relationship between the primary outcome (number of self-test kits ordered) and the following variables:
+- Reported substance use, including alcohol, stimulants (prescribed and otherwise), opioids, cannabis, and sedatives.
+- Stage of health behavior change for HIV testing (assigned as Precontemplation, Contemplation, Determination, Action, Maintenance)
+- Attitudes toward HIV testing and treatment 
+- Stigma towards HIV and those with HIV
+- Medical mistrust
+- Opinions about PrEP measures 
+  
 ## Table 1
 <img width="441" height="571" alt="Screenshot 2026-01-28 at 3 42 18 PM" src="https://github.com/user-attachments/assets/50b5d269-bf32-42a4-bd4e-227c5759b796" />
 
