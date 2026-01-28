@@ -2,7 +2,7 @@
 
 - Code: sta540_cs1.Rmd
 - Revised SAP: sta540_cs1_sap_edited.pdf
-- 
+
 The displayed results of the reproduction can also be found in the sta540_cs1.pdf file.
 
 ## Table 1
