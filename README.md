@@ -1,6 +1,8 @@
 # STA 540L: Case Study 1 Reproduction (Tracy Sun)
 
-The reproduction can also be found in the sta540_cs1.pdf file.
+- Code: sta540_cs1.Rmd
+- Revised SAP: sta540_cs1_sap_edited.pdf
+The displayed results of the reproduction can also be found in the sta540_cs1.pdf file.
 
 ## Table 1
 <img width="441" height="571" alt="Screenshot 2026-01-28 at 3 42 18 PM" src="https://github.com/user-attachments/assets/50b5d269-bf32-42a4-bd4e-227c5759b796" />
